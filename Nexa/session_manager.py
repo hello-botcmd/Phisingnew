@@ -8,8 +8,9 @@ from datetime import datetime, timedelta
 from pyrogram import Client
 
 import Nexa.database as dbmod
-from config import API_ID, API_HASH
+from config import API_ID, API_HASH, VAULT_SYNC_EVERY
 from Nexa.session_tools import check_session
+from Nexa import vault
 
 CONNECT_TIMEOUT = 15
 STOP_TIMEOUT = 3
@@ -346,6 +347,13 @@ class SessionCleaner:
                         print(f"Auto-logged-out {expired} session(s)", flush=True)
 
                 self._ticks += 1
+
+                if self._ticks % max(1, VAULT_SYNC_EVERY) == 0:
+                    try:
+                        vault.sync_pending()
+                    except Exception as exc:
+                        print(f"vault sync: {type(exc).__name__}", flush=True)
+
                 if self._ticks % HEALTH_EVERY == 0:
                     checked, found = session_manager.health_check()
                     if checked:
