@@ -1,7 +1,7 @@
 import asyncio
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
 
 from pyrogram import Client
 from pyrogram import errors
@@ -91,15 +91,18 @@ def check_many(items, key="phone", workers=8, budget=45, attempts=2, delay=0.5):
 
     pool = ThreadPoolExecutor(max_workers=workers)
     try:
-        futures = {
-            pool.submit(check_session, item.get("session_string"), attempts, delay): item
-            for item in items if item.get("session_string")
-        }
-        deadline = time.time() + budget
-        for future in futures:
-            pass
+        futures = {}
+        for item in items:
+            session_string = item.get("session_string")
+            if not session_string:
+                continue
+            futures[pool.submit(check_session, session_string, attempts, delay)] = item
+
+        if not futures:
+            return alive
+
         try:
-            for future in __import__("concurrent.futures").futures.as_completed(futures, timeout=budget):
+            for future in as_completed(futures, timeout=budget):
                 item = futures[future]
                 try:
                     ok, _err = future.result()
@@ -107,8 +110,6 @@ def check_many(items, key="phone", workers=8, budget=45, attempts=2, delay=0.5):
                     ok = False
                 if ok:
                     alive.add(item.get(key))
-                if time.time() > deadline:
-                    break
         except FutureTimeout:
             pass
     finally:
