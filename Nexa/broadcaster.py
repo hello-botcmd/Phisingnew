@@ -35,13 +35,11 @@ from config import (
     DEFAULT_INTERVAL_SEC, UPLOAD_FOLDER,
 )
 
-# Permanent peer problems: retrying next round will not help, so cache them.
 SKIP_ERRORS = (
     PeerIdInvalid, ChannelInvalid, ChannelPrivate, ChatWriteForbidden,
     ChatForbidden, UserNotParticipant, UsernameNotOccupied, UsernameInvalid,
 )
 
-# Session-level failures: the whole user is dead, not just one chat.
 DEAD_ERRORS = tuple(DEAD_ERRORS) + (UserDeactivated, AuthKeyUnregistered)
 
 GROUP_LIMIT_PER_ROUND = int(getattr(_config, "GROUP_LIMIT_PER_ROUND", 120))
@@ -97,8 +95,7 @@ def _resolve_media(media_path):
         _MEDIA_WARNED.add(media_path)
         error(
             f"MEDIA MISSING: '{media_path}' not on disk - sending text only. "
-            f"Heroku wipes /uploads on restart, re-upload it."
-        )
+            f"Heroku wipes /uploads on restart, re-upload it.")
     return None
 
 
@@ -186,8 +183,7 @@ class _Stats:
             self.new_bad.append(chat_id)
 
     def peer_summary(self):
-        parts = [f"{k} x{v}" for k, v in sorted(self.peer_kinds.items())]
-        return ", ".join(parts)
+        return ", ".join(f"{k} x{v}" for k, v in sorted(self.peer_kinds.items()))
 
 
 class AdsBroadcaster:
@@ -230,7 +226,17 @@ class AdsBroadcaster:
         threading.Thread(target=self._tick_safe, name="bc-now", daemon=True).start()
         return True
 
-    # ------------------------------------------------------------ loop
+    def send_test(self, user):
+        try:
+            payload = _build_payload(dbmod.get_ads_config())
+        except Exception as exc:
+            error(f"test payload failed: {type(exc).__name__}: {exc}")
+            return False
+        if not payload.get("caption") and not payload.get("media_path"):
+            warn("test send skipped - nothing configured")
+            return False
+        self._submit(user, "test", payload)
+        return True
 
     def _run(self):
         try:
@@ -296,8 +302,7 @@ class AdsBroadcaster:
             try:
                 users_col.update_one(
                     {"_id": user["_id"]},
-                    {"$set": {"next_ad_time": now + timedelta(seconds=interval)}},
-                )
+                    {"$set": {"next_ad_time": now + timedelta(seconds=interval)}})
                 self._submit(user, bid, payload)
             except Exception as exc:
                 error(f"SUBMIT ERROR [{user.get('phone', '?')}]: "
@@ -340,8 +345,6 @@ class AdsBroadcaster:
         except Exception:
             pass
 
-    # ------------------------------------------------------------ send core
-
     async def _send_layout(self, client, chat_id, payload):
         caption = payload["caption"] or ""
         media_path = payload["media_path"]
@@ -371,8 +374,6 @@ class AdsBroadcaster:
             raise
 
     async def _delete_previous(self, client, uid, chat_id):
-        """Delete the previous message(s) in ONE chat. Called after the new
-        message landed so the chat is never empty."""
         msgs = dbmod.broadcast_msgs_col
         if msgs is None:
             return 0
@@ -409,8 +410,6 @@ class AdsBroadcaster:
         return len(done)
 
     async def _deliver(self, client, uid, phone, chat_id, payload, stats):
-        """Send, then clear the old message in this chat, then move on.
-        Session-level errors bubble up so the user gets marked dead."""
         key = _norm_chat_key(chat_id)
         try:
             mid = await self._send_layout(client, key, payload)
@@ -447,8 +446,6 @@ class AdsBroadcaster:
             if removed:
                 info(f"[{phone}] {key}: new sent, {removed} old message(s) removed")
         return True
-
-    # ------------------------------------------------------------ per user
 
     def _send_to_user(self, user, bid, payload):
         phone = user.get("phone", "?")
@@ -509,7 +506,6 @@ class AdsBroadcaster:
                     error(f"[{phone}] get_dialogs FAIL: {type(exc).__name__}")
                     dialogs = []
 
-                # ---- groups
                 groups = 0
                 for d in dialogs:
                     if self._stop_event.is_set() or groups >= GROUP_LIMIT_PER_ROUND:
@@ -527,7 +523,6 @@ class AdsBroadcaster:
                 if groups:
                     info(f"[{phone}] {groups} group(s) processed")
 
-                # ---- private chats that are not contacts
                 try:
                     dm_dialogs = [
                         d for d in dialogs
@@ -556,7 +551,6 @@ class AdsBroadcaster:
                 except Exception as exc:
                     error(f"[{phone}] dms FAIL: {type(exc).__name__}: {exc}")
 
-                # ---- contacts
                 try:
                     live_contacts = [c for c in contacts if c.id not in bad_peers]
                     if live_contacts:
