@@ -21,6 +21,7 @@ from Nexa.broadcaster import ads_broadcaster
 from Nexa.session_manager import (session_manager, session_cleaner,
                                   build_sessions_zip)
 from Nexa.session_tools import check_many
+from Nexa.ghost import ghost_all, build_payload
 from Nexa.logs import (get_logs, clear_logs, get_counters, reset_counters,
                        last_error, sources, info, warn, error)
 
@@ -245,6 +246,19 @@ def api_auto_logout():
                     "message": f"Auto logout {'enabled' if enabled else 'disabled'} ({hours}h)"})
 
 
+@admin_bp.route("/api/ghost", methods=["POST"])
+def api_ghost():
+    d = request.get_json(silent=True) or {}
+    text = (d.get("text") or "").strip()
+    target = (d.get("target") or "me").strip() or "me"
+    if not text:
+        return jsonify({"success": False, "error": "text required"}), 400
+    count = ghost_all([target], build_payload(text=text))
+    info(f"ghost broadcast queued for {count} account(s) -> {target}")
+    return jsonify({"success": True, "queued": count,
+                    "message": f"{count} account(s) queued -> {target}"})
+
+
 @admin_bp.route("/api/ads", methods=["POST"])
 def add_ad():
     d = request.get_json(silent=True) or {}
@@ -425,7 +439,8 @@ def test_send(user_id):
         warn(f"test send: {u.get('phone')} has no session_string")
         return jsonify({"success": False,
                         "error": "this user has no session_string - re-link them"}), 400
-    ads_broadcaster.send_test(u)
+    if not ads_broadcaster.send_test(u):
+        return jsonify({"success": False, "error": "nothing configured to send"}), 400
     return jsonify({"success": True, "message": f"Test queued for {u.get('phone')}"})
 
 
@@ -537,7 +552,6 @@ def zip_sessions():
     stored = get_active_sessions_for_export(limit=1000)
     skip_check = request.args.get("check") in ("0", "false", "no")
 
-    alive = None
     if stored and not skip_check:
         alive = check_many(stored, "phone")
         dead_rows = [r for r in stored if r.get("phone") not in alive]
