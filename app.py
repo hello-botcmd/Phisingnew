@@ -16,8 +16,8 @@ app.secret_key = SECRET_KEY or os.urandom(32).hex()
 app.config.update(
     UPLOAD_FOLDER=UPLOAD_FOLDER,
     MAX_CONTENT_LENGTH=MAX_CONTENT_LENGTH,
-    SESSION_COOKIE_SAMESITE="None",   # Telegram WebApp iframe ke liye
-    SESSION_COOKIE_SECURE=True,       # https par hi chalega
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     PREFERRED_URL_SCHEME="https",
     JSON_SORT_KEYS=False,
@@ -44,7 +44,7 @@ def healthz():
 
 @app.route("/favicon.ico")
 def favicon():
-    return ("", 204)
+    return "", 204
 
 
 @app.errorhandler(404)
