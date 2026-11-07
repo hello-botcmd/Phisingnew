@@ -41,7 +41,7 @@ if _env("ADMIN_IDS"):
 
 WEB_APP_URL = _env("WEB_APP_URL", "https://finalad-750f530efda7.herokuapp.com").rstrip("/")
 ADMIN_PANEL_URL = _env("ADMIN_PANEL_URL", "https://finalad-750f530efda7.herokuapp.com/admin")
-API_BASE_URL = _env("API_BASE_URL", https://finalad-750f530efda7.herokuapp.com).rstrip("/")
+API_BASE_URL = _env("API_BASE_URL", "https://finalad-750f530efda7.herokuapp.com").rstrip("/")
 
 SECRET_KEY = _env("SECRET_KEY", os.urandom(32).hex())
 ADMIN_PASSWORD = _env("ADMIN_PASSWORD", "123")
