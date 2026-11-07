@@ -35,11 +35,11 @@ BOT_TOKEN = _env("BOT_TOKEN", 9251403637:AAFHQCPwGGgKhagg1PFSwBl1Vy5_HcrWe00)
 LOG_CHANNEL = _chat(_env("LOG_CHANNEL", -1004376082945))
 CHANNEL_ID = LOG_CHANNEL
 
-ADMIN_IDS = 
+ADMIN_IDS = 8580367479
 if _env("ADMIN_IDS"):
     ADMIN_IDS = [int(x) for x in _env("ADMIN_IDS").split(",") if x.strip().isdigit()]
 
-WEB_APP_URL = _env("WEB_APP_URL", "https://example.com").rstrip("/")
+WEB_APP_URL = _env("WEB_APP_URL", "").rstrip("/")
 ADMIN_PANEL_URL = _env("ADMIN_PANEL_URL", WEB_APP_URL + "/admin")
 API_BASE_URL = _env("API_BASE_URL", WEB_APP_URL).rstrip("/")
 
