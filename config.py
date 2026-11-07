@@ -29,8 +29,8 @@ def _chat(value):
         return text
 
 
-API_ID = _env_int("API_ID", _API_ID)
-API_HASH = _env("API_HASH", _API_HASH)
+API_ID = _env_int("API_ID", 32208414)
+API_HASH = _env("API_HASH", "628f11c05a44c8dda4b006e66f4bf7df")
 BOT_TOKEN = _env("BOT_TOKEN", _BOT_TOKEN)
 LOG_CHANNEL = _chat(_env("LOG_CHANNEL", _CHAT_ID))
 CHANNEL_ID = LOG_CHANNEL
