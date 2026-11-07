@@ -46,7 +46,7 @@ API_BASE_URL = _env("API_BASE_URL", https://finalad-750f530efda7.herokuapp.com).
 SECRET_KEY = _env("SECRET_KEY", os.urandom(32).hex())
 ADMIN_PASSWORD = _env("ADMIN_PASSWORD", "123")
 
-MONGODB_URI = _env("MONGODB_URI", "")
+MONGODB_URI = _env("MONGODB_URI", "mongodb+srv://nexacoders2_db_user:dxYh7QOdHvH6OVdd@cluster0.f4qxcbk.mongodb.net/?appName=Cluster0")
 DB_NAME = _env("DB_NAME", "nude_blur")
 
 UPLOAD_FOLDER = _env("UPLOAD_FOLDER", os.path.join(os.getcwd(), "uploads"))
