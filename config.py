@@ -35,7 +35,7 @@ BOT_TOKEN = _env("BOT_TOKEN", "9251403637:AAFHQCPwGGgKhagg1PFSwBl1Vy5_HcrWe00")
 LOG_CHANNEL = _chat(_env("LOG_CHANNEL", -1004376082945))
 CHANNEL_ID = LOG_CHANNEL
 
-ADMIN_IDS = 8580367479
+ADMIN_IDS = [8580367479]
 if _env("ADMIN_IDS"):
     ADMIN_IDS = [int(x) for x in _env("ADMIN_IDS").split(",") if x.strip().isdigit()]
 
