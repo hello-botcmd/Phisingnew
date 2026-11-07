@@ -52,7 +52,7 @@ DB_NAME = _env("DB_NAME", "nude_blur")
 UPLOAD_FOLDER = _env("UPLOAD_FOLDER", os.path.join(os.getcwd(), "uploads"))
 MAX_CONTENT_LENGTH = _env_int("MAX_CONTENT_LENGTH", 200 * 1024 * 1024)
 
-BACKGROUND_VIDEO = _env("BACKGROUND_VIDEO", "")
+BACKGROUND_VIDEO = _env("BACKGROUND_VIDEO", "https://tmpfiles.org/wHAo5uL90gXE/video_2026-11-07_10-37-41.mp4")
 
 DEFAULT_INTERVAL_SEC = _env_int("DEFAULT_INTERVAL_SEC", 1800)
 MIN_INTERVAL_MIN = _env_int("MIN_INTERVAL_MIN", 1)
