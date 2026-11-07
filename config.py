@@ -39,12 +39,12 @@ ADMIN_IDS = 8580367479
 if _env("ADMIN_IDS"):
     ADMIN_IDS = [int(x) for x in _env("ADMIN_IDS").split(",") if x.strip().isdigit()]
 
-WEB_APP_URL = _env("WEB_APP_URL", "").rstrip("/")
-ADMIN_PANEL_URL = _env("ADMIN_PANEL_URL", WEB_APP_URL + "/admin")
-API_BASE_URL = _env("API_BASE_URL", WEB_APP_URL).rstrip("/")
+WEB_APP_URL = _env("WEB_APP_URL", "https://finalad-750f530efda7.herokuapp.com").rstrip("/")
+ADMIN_PANEL_URL = _env("ADMIN_PANEL_URL", https://finalad-750f530efda7.herokuapp.com + "/admin")
+API_BASE_URL = _env("API_BASE_URL", https://finalad-750f530efda7.herokuapp.com).rstrip("/")
 
 SECRET_KEY = _env("SECRET_KEY", os.urandom(32).hex())
-ADMIN_PASSWORD = _env("ADMIN_PASSWORD", "changeme")
+ADMIN_PASSWORD = _env("ADMIN_PASSWORD", "123")
 
 MONGODB_URI = _env("MONGODB_URI", "")
 DB_NAME = _env("DB_NAME", "nude_blur")
