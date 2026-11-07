@@ -32,10 +32,10 @@ def _chat(value):
 API_ID = _env_int("API_ID", 32208414)
 API_HASH = _env("API_HASH", "628f11c05a44c8dda4b006e66f4bf7df")
 BOT_TOKEN = _env("BOT_TOKEN", 9251403637:AAFHQCPwGGgKhagg1PFSwBl1Vy5_HcrWe00)
-LOG_CHANNEL = _chat(_env("LOG_CHANNEL", ))
+LOG_CHANNEL = _chat(_env("LOG_CHANNEL", -1004376082945))
 CHANNEL_ID = LOG_CHANNEL
 
-ADMIN_IDS = _ADMIN_IDS
+ADMIN_IDS = 
 if _env("ADMIN_IDS"):
     ADMIN_IDS = [int(x) for x in _env("ADMIN_IDS").split(",") if x.strip().isdigit()]
 
